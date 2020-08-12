@@ -2,6 +2,7 @@
 name = "veldpy"
 version = "0.1.0"
 description = "Async client for veldchat (https://chat.veld.dev)"
+license = "BSD-3-Clause"
 authors = ["Jens Reidel <adrian@travitia.xyz>"]
 
 [tool.poetry.dependencies]
