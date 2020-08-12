@@ -30,40 +30,46 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
+
+from dataclasses_json import LetterCase, dataclass_json
 
 # This is an implementation of the veldchat gateway models as described here:
 # https://github.com/velddev/node-chat-server/wiki/Model
 
 
+@dataclass_json(letter_case=LetterCase.CAMEL)
 @dataclass
 class Embed:
-    author: Optional[EmbedAuthor]
-    title: Optional[str]
-    description: Optional[str]
-    color: Optional[int]
-    footer: Optional[str]
-    image_url: Optional[str]
-    thumbnail_url: Optional[str]
+    author: Optional[EmbedAuthor] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    color: Optional[int] = None
+    footer: Optional[str] = None
+    image_url: Optional[str] = None
+    thumbnail_url: Optional[str] = None
 
 
+@dataclass_json(letter_case=LetterCase.CAMEL)
 @dataclass
 class EmbedAuthor:
     value: str
-    icon_url: Optional[str]
+    icon_url: Optional[str] = None
 
 
+@dataclass_json(letter_case=LetterCase.CAMEL)
 @dataclass
 class Message:
-    content: Optional[str]
-    embed: Optional[Embed]
-    mentions: List[int]
     user: User
+    content: Optional[str] = None
+    embed: Optional[Embed] = None
+    mentions: List[int] = None
 
 
+@dataclass_json(letter_case=LetterCase.CAMEL)
 @dataclass
 class User:
     id: int
-    avatar_url: Optional[str]
     name: str
     bot: bool
+    avatar_url: Optional[str] = None
