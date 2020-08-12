@@ -32,15 +32,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import List, Optional
 
-from dataclasses_json import LetterCase, dataclass_json
+from dataclasses_json import DataClassJsonMixin, LetterCase, config
 
 # This is an implementation of the veldchat gateway models as described here:
 # https://github.com/velddev/node-chat-server/wiki/Model
 
 
-@dataclass_json(letter_case=LetterCase.CAMEL)
 @dataclass
-class Embed:
+class Embed(DataClassJsonMixin):
+    dataclass_json_config = config(letter_case=LetterCase.CAMEL, undefined=None)
     author: Optional[EmbedAuthor] = None
     title: Optional[str] = None
     description: Optional[str] = None
@@ -50,25 +50,25 @@ class Embed:
     thumbnail_url: Optional[str] = None
 
 
-@dataclass_json(letter_case=LetterCase.CAMEL)
 @dataclass
-class EmbedAuthor:
+class EmbedAuthor(DataClassJsonMixin):
+    dataclass_json_config = config(letter_case=LetterCase.CAMEL, undefined=None)
     value: str
     icon_url: Optional[str] = None
 
 
-@dataclass_json(letter_case=LetterCase.CAMEL)
 @dataclass
-class Message:
+class Message(DataClassJsonMixin):
+    dataclass_json_config = config(letter_case=LetterCase.CAMEL, undefined=None)
     user: User
     mentions: List[int]
     content: Optional[str] = None
     embed: Optional[Embed] = None
 
 
-@dataclass_json(letter_case=LetterCase.CAMEL)
 @dataclass
-class User:
+class User(DataClassJsonMixin):
+    dataclass_json_config = config(letter_case=LetterCase.CAMEL, undefined=None)
     id: int
     name: str
     bot: bool

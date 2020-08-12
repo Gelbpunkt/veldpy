@@ -32,7 +32,7 @@ import logging
 
 from collections import defaultdict
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import socketio
 
@@ -49,7 +49,9 @@ log = logging.getLogger(__name__)
 class Client:
     def __init__(self) -> None:
         self.sio = socketio.AsyncClient()
-        self._listeners: Dict[GatewayEvent, List[Callable]] = defaultdict(lambda: [])
+        self._listeners: Dict[GatewayEvent, List[Callable[[Any], Any]]] = defaultdict(
+            lambda: []
+        )
         self.register_handlers()
         self._parsers = {
             GatewayEvent.USR_MSG: Message.from_dict,
@@ -61,7 +63,7 @@ class Client:
         self.users: List[User] = []
         self.user: Optional[User] = None
 
-    def _process_ready(self, data: Dict[str, Any]):
+    def _process_ready(self, data: Dict[str, Any]) -> None:
         for user in data["members"]:
             self.users.append(User.from_dict(user))
         self.user = User.from_dict(data["user"])
@@ -90,20 +92,20 @@ class Client:
         for event in GatewayEvent:
             self.sio.on(event.name, partial(forward, event))
 
-    def event(self) -> Callable[[Callable], Callable]:
+    def event(self) -> Callable[[Callable[[Any], Any]], Callable[[Any], Any]]:
         """
         Registers a new event handler.
         """
 
-        def inner(func):
+        def inner(func: Callable[[Any], Any]) -> Callable[[Any], Any]:
             # Remove on_
             try:
                 name = func.__name__[3:].upper()
             except IndexError:
-                return
+                return func
             event = getattr(GatewayEvent, name, None)
             if event is None:
-                return
+                return func
 
             self._listeners[event].append(func)
 
@@ -124,7 +126,9 @@ class Client:
         log.debug("Logging in")
         await self.sio.emit("login", {"token": token, "bot": bot})
 
-    async def start(self, *args, **kwargs) -> None:
+    async def start(
+        self, *args: Optional[Union[str, bool]], **kwargs: Optional[Union[str, bool]]
+    ) -> None:
         self._listeners[GatewayEvent.CONNECT].append(
             partial(self.login, *args, **kwargs)
         )
@@ -139,6 +143,8 @@ class Client:
         finally:
             await self.sio.disconnect()
 
-    def run(self, *args, **kwargs) -> None:
+    def run(
+        self, *args: Optional[Union[str, bool]], **kwargs: Optional[Union[str, bool]]
+    ) -> None:
         log.debug("Starting asyncio event loop")
         asyncio.run(self.start(*args, **kwargs))
