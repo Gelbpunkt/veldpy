@@ -29,7 +29,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Optional
 
 from dataclasses_json import DataClassJsonMixin, LetterCase, config
@@ -69,10 +69,11 @@ class Message(DataClassJsonMixin):
 @dataclass
 class User(DataClassJsonMixin):
     dataclass_json_config = config(letter_case=LetterCase.CAMEL, undefined=None)
+    # compare needs to be False for id to be used for comparison
     id: int
-    name: str
-    bot: bool
-    avatar_url: Optional[str] = None
+    name: str = field(compare=False)
+    bot: bool = field(compare=False)
+    avatar_url: Optional[str] = field(default=None, compare=False)
 
 
 @dataclass

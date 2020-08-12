@@ -64,10 +64,6 @@ class Client:
         self.users: List[User] = []
         self.user: Optional[User] = None
 
-    def _process_ready(self, payload: ReadyPayload) -> None:
-        self.users = payload.members
-        self.user = payload.user
-
     def add_listener(self, event: GatewayEvent, callback: Callable[..., Any]) -> None:
         self._listeners[event].append(callback)
 
@@ -106,6 +102,9 @@ class Client:
                         await maybe_coro
 
         for event in GatewayEvent:
+            # Check if there is a default method on the client
+            if callback := getattr(self, f"on_{event.value.replace('-', '_')}", None):
+                self.add_listener(event, callback)
             self.sio.on(event.value, partial(forward, event))
 
     def event(
@@ -153,7 +152,6 @@ class Client:
         self, *args: Optional[Union[str, bool]], **kwargs: Optional[Union[str, bool]]
     ) -> None:
         self.add_listener(GatewayEvent.CONNECT, partial(self.login, *args, **kwargs))
-        self.add_listener(GatewayEvent.READY, self._process_ready)
         log.debug(f"About to connect, listeners are: {self._listeners}")
         await self.sio.connect("https://chat-gateway.veld.dev")
         await self.sio.wait()
@@ -173,3 +171,13 @@ class Client:
             traceback.print_exc()
         finally:
             loop.run_until_complete(self.sio.disconnect())
+
+    def on_ready(self, payload: ReadyPayload) -> None:
+        self.users = payload.members
+        self.user = payload.user
+
+    def on_sys_join(self, user: User) -> None:
+        self.users.append(user)
+
+    def on_sys_leave(self, user: User) -> None:
+        self.users.remove(user)
