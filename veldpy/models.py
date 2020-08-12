@@ -73,3 +73,11 @@ class User(DataClassJsonMixin):
     name: str
     bot: bool
     avatar_url: Optional[str] = None
+
+
+@dataclass
+class ReadyPayload(DataClassJsonMixin):
+    dataclass_json_config = config(letter_case=LetterCase.CAMEL, undefined=None)
+    user: User
+    members: List[User]
+    token: str

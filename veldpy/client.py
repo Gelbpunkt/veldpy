@@ -37,7 +37,7 @@ from typing import Any, Callable, Dict, List, Optional, Union
 import socketio
 
 from .events import GatewayEvent
-from .models import Message, User
+from .models import Message, ReadyPayload, User
 
 # This is an implementation of a simple Client for the socket.io server
 # It does only faciliate connecting, models and events
@@ -58,15 +58,14 @@ class Client:
             GatewayEvent.SYS_JOIN: User.from_dict,
             GatewayEvent.SYS_LEAVE: User.from_dict,
             GatewayEvent.USR_TYP: User.from_dict,
-            GatewayEvent.READY: self._process_ready,
+            GatewayEvent.READY: ReadyPayload.from_dict,
         }
         self.users: List[User] = []
         self.user: Optional[User] = None
 
-    def _process_ready(self, data: Dict[str, Any]) -> None:
-        for user in data["members"]:
-            self.users.append(User.from_dict(user))
-        self.user = User.from_dict(data["user"])
+    def _process_ready(self, payload: ReadyPayload) -> None:
+        self.users = payload.members
+        self.user = payload.user
 
     def register_handlers(self) -> None:
         """
@@ -132,6 +131,7 @@ class Client:
         self._listeners[GatewayEvent.CONNECT].append(
             partial(self.login, *args, **kwargs)
         )
+        self._listeners[GatewayEvent.READY].append(self._process_ready)
         log.debug(f"About to connect, listeners are: {self._listeners}")
         try:
             await self.sio.connect("https://chat-gateway.veld.dev")
