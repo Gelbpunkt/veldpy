@@ -29,7 +29,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 from .client import Client
 from .events import GatewayEvent
-from .models import Embed, EmbedAuthor, Message, User
+from .models import Embed, EmbedAuthor, Message, ReadyPayload, User
 
 __title__ = "veldpy"
 __version__ = "0.1.0"
