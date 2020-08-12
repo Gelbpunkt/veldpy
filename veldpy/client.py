@@ -68,7 +68,7 @@ class Client:
         self.users = payload.members
         self.user = payload.user
 
-    def add_listener(self, event: GatewayEvent, callback: Callable[..., Any]):
+    def add_listener(self, event: GatewayEvent, callback: Callable[..., Any]) -> None:
         self._listeners[event].append(callback)
 
     def register_handlers(self) -> None:
@@ -137,7 +137,7 @@ class Client:
         return inner
 
     async def send_message(self, text: str) -> None:
-        await self.sio.emit("usr-msg", {"message": text})
+        await self.sio.emit("usr-msg", {"content": text})
 
     async def set_nick(self, name: str) -> None:
         """
@@ -155,18 +155,21 @@ class Client:
         self.add_listener(GatewayEvent.CONNECT, partial(self.login, *args, **kwargs))
         self.add_listener(GatewayEvent.READY, self._process_ready)
         log.debug(f"About to connect, listeners are: {self._listeners}")
-        try:
-            await self.sio.connect("https://chat-gateway.veld.dev")
-            await self.sio.wait()
-        except Exception:
-            import traceback
-
-            traceback.print_exc()
-        finally:
-            await self.sio.disconnect()
+        await self.sio.connect("https://chat-gateway.veld.dev")
+        await self.sio.wait()
 
     def run(
         self, *args: Optional[Union[str, bool]], **kwargs: Optional[Union[str, bool]]
     ) -> None:
         log.info("Starting asyncio event loop")
-        asyncio.run(self.start(*args, **kwargs))
+        loop = asyncio.get_event_loop()
+        try:
+            loop.run_until_complete(self.start(*args, **kwargs))
+        except KeyboardInterrupt:
+            pass
+        except Exception:
+            import traceback
+
+            traceback.print_exc()
+        finally:
+            loop.run_until_complete(self.sio.disconnect())

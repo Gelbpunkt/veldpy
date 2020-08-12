@@ -62,7 +62,7 @@ class Message(DataClassJsonMixin):
     dataclass_json_config = config(letter_case=LetterCase.CAMEL, undefined=None)
     user: User
     mentions: List[int]
-    message: Optional[str] = None
+    content: Optional[str] = None
     embed: Optional[Embed] = None
 
 

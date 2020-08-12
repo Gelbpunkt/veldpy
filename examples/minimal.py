@@ -16,16 +16,18 @@ async def on_ready(payload: ReadyPayload) -> None:
 
 @client.event()
 async def on_usr_msg(message: Message) -> None:
-    if message.user.bot or not message.message:
+    if message.user.bot or not message.content:
         return
-    if message.message == ".ping":
+    if message.content == ".ping":
         await client.send_message("poggers")
-    elif message.message.startswith("."):
+    elif message.content.startswith("."):
         await client.send_message("idk that command bro")
 
 
 @client.event(GatewayEvent.SYS_JOIN)
 async def user_joined(user: User):
+    if user.id == client.user.id:
+        return
     await client.send_message(f"{user.name} has joined the kool kidz klub!")
 
 
