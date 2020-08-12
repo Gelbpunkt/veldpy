@@ -28,6 +28,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 import asyncio
+import inspect
 import logging
 
 from collections import defaultdict
@@ -49,7 +50,7 @@ log = logging.getLogger(__name__)
 class Client:
     def __init__(self) -> None:
         self.sio = socketio.AsyncClient()
-        self._listeners: Dict[GatewayEvent, List[Callable[[Any], Any]]] = defaultdict(
+        self._listeners: Dict[GatewayEvent, List[Callable[..., Any]]] = defaultdict(
             lambda: []
         )
         self.register_handlers()
@@ -78,18 +79,31 @@ class Client:
 
         # This sadly has to be a coro instead of returning callback
         # https://github.com/miguelgrinberg/python-socketio/blob/master/socketio/asyncio_client.py#L388
-        async def forward(event: GatewayEvent, data: Dict[str, Any]) -> None:
+        async def forward(
+            event: GatewayEvent, data: Optional[Dict[str, Any]] = None
+        ) -> None:
             log.debug(f"Received event: {event}")
-            if parser := self._parsers.get(event, None):
-                parsed = parser(data)
-            else:
-                parsed = data
             callbacks = self._listeners[event]
-            for callback in callbacks:
-                await callback(parsed)
+            if not callbacks:
+                return
+
+            if data is not None:
+                if parser := self._parsers.get(event, None):
+                    parsed = parser(data)
+                else:
+                    parsed = data
+                for callback in callbacks:
+                    maybe_coro = callback(parsed)
+                    if inspect.iscoroutine(maybe_coro):
+                        await maybe_coro
+            else:
+                for callback in callbacks:
+                    maybe_coro = callback()
+                    if inspect.iscoroutine(maybe_coro):
+                        await maybe_coro
 
         for event in GatewayEvent:
-            self.sio.on(event.name, partial(forward, event))
+            self.sio.on(event.value, partial(forward, event))
 
     def event(self) -> Callable[[Callable[[Any], Any]], Callable[[Any], Any]]:
         """
@@ -122,7 +136,7 @@ class Client:
         await self.send_message(f"/nick {name}")
 
     async def login(self, token: Optional[str] = None, bot: bool = True) -> None:
-        log.debug("Logging in")
+        log.info(f"Logging in with token {token} and bot={bot}")
         await self.sio.emit("login", {"token": token, "bot": bot})
 
     async def start(
@@ -146,5 +160,5 @@ class Client:
     def run(
         self, *args: Optional[Union[str, bool]], **kwargs: Optional[Union[str, bool]]
     ) -> None:
-        log.debug("Starting asyncio event loop")
+        log.info("Starting asyncio event loop")
         asyncio.run(self.start(*args, **kwargs))

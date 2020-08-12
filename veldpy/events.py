@@ -36,11 +36,11 @@ class GatewayEvent(Enum):
     and the CONNECT event from socket.io
     """
 
-    CONNECT = 0
-    USR_MSG = 1
-    SYS_JOIN = 2
-    SYS_LEAVE = 3
-    SYS_ERROR = 4
-    USR_TYP = 5
-    READY = 6
-    SYS_COMMANDS = 7
+    CONNECT = "connect"
+    USR_MSG = "usr-msg"
+    SYS_JOIN = "sys-join"
+    SYS_LEAVE = "sys-leave"
+    SYS_ERROR = "sys-error"
+    USR_TYP = "usr-typ"
+    READY = "ready"
+    SYS_COMMANDS = "sys-commands"
