@@ -27,18 +27,13 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
-##############################################################################
-#
-
-
-#
-##############################################################################
 from __future__ import annotations
 
-# This is an implementation of the veldchat gateway models as described here:
-# https://github.com/velddev/node-chat-server/wiki/Models
 from dataclasses import dataclass
 from typing import List, Optional
+
+# This is an implementation of the veldchat gateway models as described here:
+# https://github.com/velddev/node-chat-server/wiki/Model
 
 
 @dataclass
