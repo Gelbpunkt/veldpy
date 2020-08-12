@@ -6,8 +6,9 @@ client = Client()
 
 
 @client.event()
-async def on_ready(data):
-    print("poggers")
+async def on_ready(payload):
+    print(f"Logged in as {payload.user.name}")
+    await client.set_nick("AdrianIsAPogChamp")
 
 
 @client.event()
