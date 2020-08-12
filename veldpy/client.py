@@ -68,6 +68,9 @@ class Client:
         self.users = payload.members
         self.user = payload.user
 
+    def add_listener(self, event: GatewayEvent, callback: Callable[..., Any]):
+        self._listeners[event].append(callback)
+
     def register_handlers(self) -> None:
         """
         Method used to provide handlers for each
@@ -105,22 +108,29 @@ class Client:
         for event in GatewayEvent:
             self.sio.on(event.value, partial(forward, event))
 
-    def event(self) -> Callable[[Callable[[Any], Any]], Callable[[Any], Any]]:
+    def event(
+        self, event_type: Optional[GatewayEvent] = None
+    ) -> Callable[[Callable[[Any], Any]], Callable[[Any], Any]]:
         """
         Registers a new event handler.
         """
 
-        def inner(func: Callable[[Any], Any]) -> Callable[[Any], Any]:
-            # Remove on_
-            try:
-                name = func.__name__[3:].upper()
-            except IndexError:
-                return func
-            event = getattr(GatewayEvent, name, None)
-            if event is None:
-                return func
+        # Hack to keep event_type in scope :^)
+        def inner(
+            func: Callable[[Any], Any], event_type: Optional[GatewayEvent] = event_type
+        ) -> Callable[[Any], Any]:
+            # If no event is provided, use the function name
+            if event_type is None:
+                # Remove on_
+                try:
+                    name = func.__name__[3:].upper()
+                except IndexError:
+                    return func
+                event_type = getattr(GatewayEvent, name, None)
+                if event_type is None:
+                    return func
 
-            self._listeners[event].append(func)
+            self.add_listener(event_type, func)
 
             return func
 
@@ -142,10 +152,8 @@ class Client:
     async def start(
         self, *args: Optional[Union[str, bool]], **kwargs: Optional[Union[str, bool]]
     ) -> None:
-        self._listeners[GatewayEvent.CONNECT].append(
-            partial(self.login, *args, **kwargs)
-        )
-        self._listeners[GatewayEvent.READY].append(self._process_ready)
+        self.add_listener(GatewayEvent.CONNECT, partial(self.login, *args, **kwargs))
+        self.add_listener(GatewayEvent.READY, self._process_ready)
         log.debug(f"About to connect, listeners are: {self._listeners}")
         try:
             await self.sio.connect("https://chat-gateway.veld.dev")
