@@ -27,12 +27,20 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
-from .client import Client
-from .events import GatewayEvent
-from .models import Embed, EmbedAuthor, Message, User
+from enum import Enum
 
-__title__ = "veldpy"
-__version__ = "0.1.0"
-__author__ = "Jens Reidel <adrian@travitia.xyz>"
-__license__ = "BSD-3-Clause"
-__copyright__ = "Copyright 2020 (c) Jens Reidel"
+
+class GatewayEvent(Enum):
+    """
+    An enumeration of gateway events
+    and the CONNECT event from socket.io
+    """
+
+    CONNECT = 0
+    USR_MSG = 1
+    SYS_JOIN = 2
+    SYS_LEAVE = 3
+    SYS_ERROR = 4
+    USR_TYP = 5
+    READY = 6
+    SYS_COMMANDS = 7

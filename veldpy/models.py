@@ -30,7 +30,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from dataclasses_json import LetterCase, dataclass_json
 
@@ -61,9 +61,9 @@ class EmbedAuthor:
 @dataclass
 class Message:
     user: User
+    mentions: List[int]
     content: Optional[str] = None
     embed: Optional[Embed] = None
-    mentions: List[int] = None
 
 
 @dataclass_json(letter_case=LetterCase.CAMEL)

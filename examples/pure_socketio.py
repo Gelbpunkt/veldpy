@@ -1,8 +1,9 @@
 # This example is a proof-of-concept regarding socketio and not part of
 # any library-specific examples
 import asyncio
+
 from functools import partial
-from typing import Any, Dict, TypeVar
+from typing import TypeVar
 
 import socketio
 
@@ -73,7 +74,7 @@ class VeldClient:
         try:
             await self.sio.connect("https://chat-gateway.veld.dev")
             await self.sio.wait()
-        except:
+        except Exception:
             import traceback
 
             traceback.print_exc()
