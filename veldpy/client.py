@@ -33,11 +33,12 @@ import logging
 
 from collections import defaultdict
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional
 
 import socketio
 
 from .events import GatewayEvent
+from .http import HTTPClient
 from .models import Message, ReadyPayload, User
 
 # This is an implementation of a simple Client for the socket.io server
@@ -50,6 +51,7 @@ log = logging.getLogger(__name__)
 class Client:
     def __init__(self) -> None:
         self.sio = socketio.AsyncClient()
+        self.http = HTTPClient()
         self._listeners: Dict[GatewayEvent, List[Callable[..., Any]]] = defaultdict(
             lambda: []
         )
@@ -65,7 +67,32 @@ class Client:
         self.user: Optional[User] = None
 
     def add_listener(self, event: GatewayEvent, callback: Callable[..., Any]) -> None:
+        """Adds an event listener for a specific event."""
         self._listeners[event].append(callback)
+
+    def dispatch(
+        self, event: GatewayEvent, data: Optional[Dict[str, Any]] = None
+    ) -> None:
+        """Dispatches the raw gateway event, parses it and calls the listeners."""
+        log.debug(f"Received event: {event}")
+        callbacks = self._listeners[event]
+        if not callbacks:
+            return
+
+        if data is not None:
+            if parser := self._parsers.get(event, None):
+                parsed = parser(data)
+                for callback in callbacks:
+                    maybe_coro = callback(parsed)
+                    if inspect.iscoroutine(maybe_coro):
+                        asyncio.create_task(maybe_coro)
+            else:
+                log.warning(f"No parser for event {event} found")
+        else:
+            for callback in callbacks:
+                maybe_coro = callback()
+                if inspect.iscoroutine(maybe_coro):
+                    asyncio.create_task(maybe_coro)
 
     def register_handlers(self) -> None:
         """
@@ -75,43 +102,17 @@ class Client:
         It creates a wrapper function for each event that
         looks for a handler registered on this client.
         """
-
-        # This sadly has to be a coro instead of returning callback
-        # https://github.com/miguelgrinberg/python-socketio/blob/master/socketio/asyncio_client.py#L388
-        async def forward(
-            event: GatewayEvent, data: Optional[Dict[str, Any]] = None
-        ) -> None:
-            log.debug(f"Received event: {event}")
-            callbacks = self._listeners[event]
-            if not callbacks:
-                return
-
-            if data is not None:
-                if parser := self._parsers.get(event, None):
-                    parsed = parser(data)
-                else:
-                    parsed = data
-                for callback in callbacks:
-                    maybe_coro = callback(parsed)
-                    if inspect.iscoroutine(maybe_coro):
-                        await maybe_coro
-            else:
-                for callback in callbacks:
-                    maybe_coro = callback()
-                    if inspect.iscoroutine(maybe_coro):
-                        await maybe_coro
-
         for event in GatewayEvent:
             # Check if there is a default method on the client
             if callback := getattr(self, f"on_{event.value.replace('-', '_')}", None):
                 self.add_listener(event, callback)
-            self.sio.on(event.value, partial(forward, event))
+            self.sio.on(event.value, partial(self.dispatch, event))
 
     def event(
         self, event_type: Optional[GatewayEvent] = None
     ) -> Callable[[Callable[[Any], Any]], Callable[[Any], Any]]:
         """
-        Registers a new event handler.
+        Decorator that registers a new event handler.
         """
 
         # Hack to keep event_type in scope :^)
@@ -135,34 +136,37 @@ class Client:
 
         return inner
 
-    async def send_message(self, text: str) -> None:
-        await self.sio.emit("usr-msg", {"content": text})
-
     async def set_nick(self, name: str) -> None:
         """
         Sets the nickname for the bot.
         """
-        await self.send_message(f"/nick {name}")
+        await self.http.send_message(f"/nick {name}")
 
-    async def login(self, token: Optional[str] = None, bot: bool = True) -> None:
-        log.info(f"Logging in with token {token} and bot={bot}")
-        await self.sio.emit("login", {"token": token, "bot": bot})
+    async def login(self) -> None:
+        """Logs in to the gateway."""
+        log.info(f"Logging in with token {self.token} and bot={self.is_bot}")
+        await self.sio.emit("login", {"token": self.token, "bot": self.is_bot})
 
-    async def start(
-        self, *args: Optional[Union[str, bool]], **kwargs: Optional[Union[str, bool]]
-    ) -> None:
-        self.add_listener(GatewayEvent.CONNECT, partial(self.login, *args, **kwargs))
+    async def start(self, token: Optional[str] = None, bot: bool = True) -> None:
+        """
+        Starts the bot with a coroutine.
+        For handling the event loop creation,
+        try Client.run
+        """
+        self.token = token
+        self.is_bot = bot
         log.debug(f"About to connect, listeners are: {self._listeners}")
         await self.sio.connect("https://chat-gateway.veld.dev")
         await self.sio.wait()
 
-    def run(
-        self, *args: Optional[Union[str, bool]], **kwargs: Optional[Union[str, bool]]
-    ) -> None:
+    def run(self, token: Optional[str] = None, bot: bool = True) -> None:
+        """
+        Starts a new event loop in asyncio and runs the bot forever
+        """
         log.info("Starting asyncio event loop")
         loop = asyncio.get_event_loop()
         try:
-            loop.run_until_complete(self.start(*args, **kwargs))
+            loop.run_until_complete(self.start(token=token, bot=bot))
         except KeyboardInterrupt:
             pass
         except Exception:
@@ -171,6 +175,9 @@ class Client:
             traceback.print_exc()
         finally:
             loop.run_until_complete(self.sio.disconnect())
+
+    async def on_connect(self) -> None:
+        await self.login()
 
     def on_ready(self, payload: ReadyPayload) -> None:
         self.users = payload.members
