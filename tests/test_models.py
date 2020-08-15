@@ -3,8 +3,20 @@ from veldpy import models
 
 def test_user() -> None:
     assert models.User.from_dict(
-        {"id": 29519, "avatarUrl": "https://lol.me/x.png", "name": "kek", "bot": True}
-    ) == models.User(id=29519, avatar_url="https://lol.me/x.png", name="kek", bot=True)
+        {
+            "id": 29519,
+            "avatarUrl": "https://lol.me/x.png",
+            "name": "kek",
+            "bot": True,
+            "status": "dnd",
+        }
+    ) == models.User(
+        id=29519,
+        avatar_url="https://lol.me/x.png",
+        name="kek",
+        bot=True,
+        status=models.Status.DND,
+    )
 
 
 def test_optional_fields() -> None:

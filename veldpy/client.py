@@ -39,7 +39,7 @@ import socketio
 
 from .events import GatewayEvent
 from .http import HTTPClient
-from .models import Message, ReadyPayload, User
+from .models import Channel, MemberEvent, Message, ReadyPayload, User
 
 # This is an implementation of a simple Client for the socket.io server
 # It does only faciliate connecting, models and events
@@ -57,13 +57,15 @@ class Client:
         )
         self.register_handlers()
         self._parsers = {
-            GatewayEvent.USR_MSG: Message.from_dict,
-            GatewayEvent.SYS_JOIN: User.from_dict,
-            GatewayEvent.SYS_LEAVE: User.from_dict,
-            GatewayEvent.USR_TYP: User.from_dict,
+            GatewayEvent.MESSAGE_CREATE: Message.from_dict,
+            GatewayEvent.MEMBER_CREATE: MemberEvent.from_dict,
+            GatewayEvent.MEMBER_DELETE: MemberEvent.from_dict,
+            GatewayEvent.MEMBER_TYPING: User.from_dict,
             GatewayEvent.READY: ReadyPayload.from_dict,
+            GatewayEvent.CHANNEL_CREATE: Channel.from_dict,
+            GatewayEvent.CHANNEL_DELETE: Channel.from_dict,
         }
-        self.users: List[User] = []
+        self.channels: List[Channel] = []
         self.user: Optional[User] = None
 
     def add_listener(self, event: GatewayEvent, callback: Callable[..., Any]) -> None:
@@ -180,11 +182,22 @@ class Client:
         await self.login()
 
     def on_ready(self, payload: ReadyPayload) -> None:
-        self.users = payload.members
         self.user = payload.user
+        self.token = payload.token
+        self.http.token = payload.token
 
-    def on_sys_join(self, user: User) -> None:
-        self.users.append(user)
+    def on_channel_create(self, channel: Channel) -> None:
+        self.channels.append(channel)
 
-    def on_sys_leave(self, user: User) -> None:
-        self.users.remove(user)
+    def on_channel_delete(self, channel: Channel) -> None:
+        self.channels.remove(channel)
+
+    def on_member_create(self, member: MemberEvent) -> None:
+        for channel in self.channels:
+            if channel.id == member.channel.id:
+                channel.members.append(member.user)
+
+    def on_member_delete(self, member: MemberEvent) -> None:
+        for channel in self.channels:
+            if channel.id == member.channel.id:
+                channel.members.remove(member.user)

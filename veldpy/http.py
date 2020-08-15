@@ -34,7 +34,7 @@ from typing import Any, Dict, Optional
 # https://chat-gateway.veld.dev/swagger/
 import aiohttp
 
-from .models import Embed
+from .models import Channel, Embed, Message
 
 log = logging.getLogger(__name__)
 
@@ -48,13 +48,49 @@ class HTTPException(Exception):
 class HTTPClient:
     def __init__(self) -> None:
         self.session = aiohttp.ClientSession()
+        self.token: Optional[str] = None
 
-    # /api/v1/message
-    async def send_message(
-        self, content: Optional[str] = None, embed: Optional[Embed] = None
-    ) -> None:
+    # /api/v1/channels
+    async def create_channel(self, name: str) -> Channel:
         """
-        Sends a message
+        Creates a new channel.
+        """
+        async with self.session.post(
+            "https://chat-gateway.veld.dev/api/v1/channels",
+            json={"name": name},
+            headers={"Authorization": f"Bearer {self.token}"},
+        ) as req:
+            if req.status != 200:
+                body = await req.text()
+                log.debug(f"HTTP Response code {req.status}, body is {body}")
+                raise HTTPException()
+            body = await req.json()
+        return Channel.from_dict(body)
+
+    # /api/v1/channels/id/join
+    async def join_channel(self, channel_id: int) -> bool:
+        """
+        Joins a channel
+        """
+        async with self.session.post(
+            f"https://chat-gateway.veld.dev/api/v1/channels/{channel_id}/join",
+            headers={"Authorization": f"Bearer {self.token}"},
+        ) as req:
+            if req.status != 204:
+                body = await req.text()
+                log.debug(f"HTTP Response code {req.status}, body is {body}")
+                raise HTTPException()
+        return True
+
+    # /api/v1/channels/id/messages
+    async def send_message(
+        self,
+        channel_id: int,
+        content: Optional[str] = None,
+        embed: Optional[Embed] = None,
+    ) -> Message:
+        """
+        Sends a message to a channel
         """
         if content is None and embed is None:
             raise ValueError("Either content or embed must be supplied")
@@ -63,9 +99,12 @@ class HTTPClient:
         if embed is not None:
             data["embed"] = embed.to_dict()
         async with self.session.post(
-            "https://chat-gateway.veld.dev/api/v1/message", json=data
+            f"https://chat-gateway.veld.dev/api/v1/channels/{channel_id}/messages",
+            json=data,
+            headers={"Authorization": f"Bearer {self.token}"},
         ) as req:
             if req.status != 204:
                 body = await req.text()
                 log.debug(f"HTTP Response code {req.status}, body is {body}")
                 raise HTTPException()
+        return Message.from_dict(data)

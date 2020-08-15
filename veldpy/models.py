@@ -30,12 +30,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import List, Optional
 
 from dataclasses_json import DataClassJsonMixin, LetterCase, config
 
 # This is an implementation of the veldchat gateway models as described here:
 # https://github.com/velddev/node-chat-server/wiki/Model
+
+
+class Status(Enum):
+    ONLINE = "online"
+    OFFLINE = "offline"
+    DND = "dnd"
+    AWAY = "away"
 
 
 @dataclass
@@ -61,6 +69,7 @@ class EmbedAuthor(DataClassJsonMixin):
 class Message(DataClassJsonMixin):
     dataclass_json_config = config(letter_case=LetterCase.CAMEL, undefined=None)
     user: User
+    channel: Channel
     mentions: List[int]
     content: Optional[str] = None
     embed: Optional[Embed] = None
@@ -73,6 +82,7 @@ class User(DataClassJsonMixin):
     id: int
     name: str = field(compare=False)
     bot: bool = field(compare=False)
+    status: UserStatus = field(compare=False)
     avatar_url: Optional[str] = field(default=None, compare=False)
 
 
@@ -82,3 +92,40 @@ class ReadyPayload(DataClassJsonMixin):
     user: User
     members: List[User]
     token: str
+
+
+@dataclass
+class TokenResponse(DataClassJsonMixin):
+    dataclass_json_config = config(letter_case=LetterCase.CAMEL, undefined=None)
+    id: str
+    token: str
+
+
+@dataclass
+class Emoji(DataClassJsonMixin):
+    dataclass_json_config = config(letter_case=LetterCase.CAMEL, undefined=None)
+    name: str
+    value: str
+    image: str
+
+
+@dataclass
+class UserStatus(DataClassJsonMixin):
+    dataclass_json_config = config(letter_case=LetterCase.CAMEL, undefined=None)
+    value: Status
+    status_text: Optional[str] = None
+
+
+@dataclass
+class Channel(DataClassJsonMixin):
+    dataclass_json_config = config(letter_case=LetterCase.CAMEL, undefined=None)
+    id: int
+    name: str = field(compare=False)
+    members: List[User] = field(default_factory=lambda: [], compare=False)
+
+
+@dataclass
+class MemberEvent(DataClassJsonMixin):
+    dataclass_json_config = config(letter_case=LetterCase.CAMEL, undefined=None)
+    channel: Channel
+    user: User
