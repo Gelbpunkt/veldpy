@@ -9,7 +9,6 @@ authors = ["Jens Reidel <adrian@travitia.xyz>"]
 python = "^3.8"
 python-socketio = "^4.6.0"
 aiohttp = "^3.6.2"
-dataclasses-json = "^0.5.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

@@ -8,14 +8,14 @@ def test_user() -> None:
             "avatarUrl": "https://lol.me/x.png",
             "name": "kek",
             "bot": True,
-            "status": "dnd",
+            "status": {"value": "dnd"},
         }
     ) == models.User(
         id=29519,
         avatar_url="https://lol.me/x.png",
         name="kek",
         bot=True,
-        status=models.Status.DND,
+        status=models.UserStatus(value=models.Status.DND),
     )
 
 

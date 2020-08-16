@@ -20,6 +20,7 @@ client = Client()
 @client.event()
 async def on_ready(payload: ReadyPayload) -> None:
     print(f"Logged in as {payload.user.name}")
+    print(client.channels)
     # await client.set_nick("NotSoWorking")
 
 

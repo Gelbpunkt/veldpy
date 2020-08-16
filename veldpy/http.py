@@ -64,8 +64,8 @@ class HTTPClient:
                 body = await req.text()
                 log.debug(f"HTTP Response code {req.status}, body is {body}")
                 raise HTTPException()
-            body = await req.json()
-        return Channel.from_dict(body)
+            json = await req.json()
+        return Channel.from_dict(json)
 
     # /api/v1/channels/id/join
     async def join_channel(self, channel_id: int) -> bool:
